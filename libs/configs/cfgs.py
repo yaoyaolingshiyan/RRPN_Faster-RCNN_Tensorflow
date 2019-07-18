@@ -5,7 +5,7 @@ import tensorflow as tf
 
 
 # ------------------------------------------------
-VERSION = 'RRPN_20180901_DOTA_v1'
+VERSION = 'RRPN_20190718_competition_v1'
 NET_NAME = 'resnet_v1_101'
 ADD_BOX_IN_TENSORBOARD = True
 # ---------------------------------------- System_config
@@ -61,11 +61,11 @@ DECAY_STEP = [100000, 200000]  # 90000, 120000
 MAX_ITERATION = 300000
 
 # -------------------------------------------- Data_preprocess_config
-DATASET_NAME = 'DOTA_TOTAL'  # 'ship', 'spacenet', 'pascal', 'coco'
+DATASET_NAME = 'competition'  # 'ship', 'spacenet', 'pascal', 'coco'
 PIXEL_MEAN = [123.68, 116.779, 103.939]  # R, G, B. In tf, channel is RGB. In openCV, channel is BGR
 IMG_SHORT_SIDE_LEN = 800
 IMG_MAX_LENGTH = 1000
-CLASS_NUM = 15
+CLASS_NUM = 18
 
 # --------------------------------------------- Network_config
 BATCH_SIZE = 1
