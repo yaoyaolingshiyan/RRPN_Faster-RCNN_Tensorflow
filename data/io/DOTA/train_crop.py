@@ -117,12 +117,10 @@ def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     f.write(doc.toprettyxml(indent = ''))
     f.close() 
 
-class_list = ['plane', 'baseball-diamond', 'bridge', 'ground-track-field', 
-'small-vehicle', 'large-vehicle', 'ship', 
-'tennis-court', 'basketball-court',  
-'storage-tank', 'soccer-ball-field', 
-'roundabout', 'harbor', 
-'swimming-pool', 'helicopter']
+class_list = ['back_ground', 'large-vehicle', 'swimming-pool', 'helicopter', 'bridge',
+              'plane', 'ship', 'soccer-ball-field', 'basketball-court', 'airport', 'container-crane',
+              'ground-track-field', 'small-vehicle', 'harbor', 'baseball-diamond', 'tennis-court',
+              'roundabout', 'storage-tank', 'helipad']
 
 
 
