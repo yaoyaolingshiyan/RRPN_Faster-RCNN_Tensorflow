@@ -117,12 +117,10 @@ def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     f.write(doc.toprettyxml(indent = ''))
     f.close() 
 
-class_list = ['plane', 'baseball-diamond', 'bridge', 'ground-track-field', 
-'small-vehicle', 'large-vehicle', 'ship', 
-'tennis-court', 'basketball-court',  
-'storage-tank', 'soccer-ball-field', 
-'roundabout', 'harbor', 
-'swimming-pool', 'helicopter']
+class_list = ['back_ground', 'large-vehicle', 'swimming-pool', 'helicopter', 'bridge',
+              'plane', 'ship', 'soccer-ball-field', 'basketball-court', 'airport', 'container-crane',
+              'ground-track-field', 'small-vehicle', 'harbor', 'baseball-diamond', 'tennis-court',
+              'roundabout', 'storage-tank', 'helipad']
 
 
 
@@ -131,7 +129,7 @@ def format_label(txt_list):
     format_data = []
     for i in txt_list[2:]:
         format_data.append(
-        [int(xy) for xy in i.split(' ')[:8]] + [class_list.index(i.split(' ')[8])]
+            [int(float(xy)) for xy in i.split(' ')[:8]] + [class_list.index(i.split(' ')[8])]
         # {'x0': int(i.split(' ')[0]),
         # 'x1': int(i.split(' ')[2]),
         # 'x2': int(i.split(' ')[4]),
@@ -143,8 +141,8 @@ def format_label(txt_list):
         # 'class': class_list.index(i.split(' ')[8]) if i.split(' ')[8] in class_list else 0, 
         # 'difficulty': int(i.split(' ')[9])}
         )
-        if i.split(' ')[8] not in class_list :
-            print ('warning found a new label :', i.split(' ')[8])
+        if i.split(' ')[8] not in class_list:
+            print('warning found a new label :', i.split(' ')[8])
             exit()
     return np.array(format_data)
 
@@ -152,8 +150,8 @@ def clip_image(file_idx, image, boxes_all, width, height):
     if len(boxes_all) > 0:
     # print ('image shape', image.shape)
         shape = image.shape
-        for start_h in range(0, shape[0], 512):
-            for start_w in range(0, shape[1], 512):
+        for start_h in range(0, shape[0], 700):
+            for start_w in range(0, shape[1], 700):
                 boxes = copy.deepcopy(boxes_all)
                 box = np.zeros_like(boxes_all)
                 start_h_new = start_h
@@ -167,8 +165,8 @@ def clip_image(file_idx, image, boxes_all, width, height):
                 bottom_right_row = min(start_h + height, shape[0])
                 bottom_right_col = min(start_w + width, shape[1])
 
-
                 subImage = image[top_left_row:bottom_right_row, top_left_col: bottom_right_col]
+
                 box[:, 0] = boxes[:, 0] - top_left_col
                 box[:, 2] = boxes[:, 2] - top_left_col
                 box[:, 4] = boxes[:, 4] - top_left_col
@@ -187,9 +185,9 @@ def clip_image(file_idx, image, boxes_all, width, height):
                 # print ('boxes_all', boxes_all)
                 # print ('top_left_col', top_left_col, 'top_left_row', top_left_row)
 
-                cond1 = np.intersect1d(np.where(center_y[:]>=0 )[0], np.where(center_x[:]>=0 )[0])
+                cond1 = np.intersect1d(np.where(center_y[:] >= 0)[0], np.where(center_x[:] >= 0)[0])
                 cond2 = np.intersect1d(np.where(center_y[:] <= (bottom_right_row - top_left_row))[0],
-                                        np.where(center_x[:] <= (bottom_right_col - top_left_col))[0])
+                                       np.where(center_x[:] <= (bottom_right_col - top_left_col))[0])
                 idx = np.intersect1d(cond1, cond2)
                 # idx = np.where(center_y[:]>=0 and center_x[:]>=0 and center_y[:] <= (bottom_right_row - top_left_row) and center_x[:] <= (bottom_right_col - top_left_col))[0]
                 # save_path, im_width, im_height, objects_axis, label_name
@@ -204,33 +202,53 @@ def clip_image(file_idx, image, boxes_all, width, height):
     
     
 
-print ('class_list', len(class_list))
-raw_data = '/dataset/DOTA/val/'
+print('class_list', len(class_list))
+raw_data = 'D:/competition/space-tech-remote-sensing-ob-detection-dataset/val/'
 raw_images_dir = os.path.join(raw_data, 'images')
 raw_label_dir = os.path.join(raw_data, 'labelTxt')
 
-save_dir = '/dataset/DOTA_clip/val/'
+save_dir = 'D:/competition/crop_dataset/val/'
+
+# 创建保存位置
+if not os.path.exists(os.path.join(save_dir, 'labeltxt')):
+    os.makedirs(os.path.join(save_dir, 'labeltxt'))
+if not os.path.exists(os.path.join(save_dir, 'images')):
+    os.makedirs(os.path.join(save_dir, 'images'))
 
 images = [i for i in os.listdir(raw_images_dir) if 'png' in i]
 labels = [i for i in os.listdir(raw_label_dir) if 'txt' in i]
 
-print ('find image', len(images))
-print ('find label', len(labels))
+print('find image', len(images))
+print('find label', len(labels))
 
 min_length = 1e10
 max_length = 1
 
+saved_path_list = os.listdir('D:/competition/crop_dataset/val/labeltxt/')
+save_list = [str(m).split('_')[0] for m in saved_path_list]
 
 for idx, img in enumerate(images):
     # img = 'P2330.png'
-    print (idx, 'read image', img)
+    print(idx, 'read image', img)
+    if img in ['P5789.png']:
+        continue
+    if img.split('.')[0] in save_list:
+        continue
     img_data = misc.imread(os.path.join(raw_images_dir, img))
     # img_data = cv2.imread(os.path.join(raw_images_dir, img))
     # if len(img_data.shape) == 2:
         # img_data = img_data[:, :, np.newaxis]
         # print ('find gray image')
 
-    txt_data = open(os.path.join(raw_label_dir, img.replace('png', 'txt')), 'r').readlines()
+    txt_data = []
+    f = open(os.path.join(raw_label_dir, img.replace('png', 'txt')), 'r', encoding='utf-8')
+    try:
+        for line in f.readlines():
+            if line == '\n':
+                continue
+            txt_data.append(str(line).strip('\n'))
+    finally:
+        f.close()
     # print (idx, len(format_label(txt_data)), img_data.shape)
     # if max(img_data.shape[:2]) > max_length:
         # max_length = max(img_data.shape[:2])
@@ -241,6 +259,7 @@ for idx, img in enumerate(images):
         # print (idx, 'min_length', min_length, 'max_length', max_length)
     box = format_label(txt_data)
     clip_image(img.strip('.png'), img_data, box, 800, 800)
+    print(img, 'have croped!')
     
     
     

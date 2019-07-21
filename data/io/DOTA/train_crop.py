@@ -4,6 +4,7 @@ from xml.dom.minidom import Document
 import numpy as np
 import copy, cv2
 
+
 def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     im_depth = 0
     object_num = len(objects_axis)
@@ -117,19 +118,18 @@ def save_to_xml(save_path, im_height, im_width, objects_axis, label_name):
     f.write(doc.toprettyxml(indent = ''))
     f.close() 
 
+
 class_list = ['back_ground', 'large-vehicle', 'swimming-pool', 'helicopter', 'bridge',
               'plane', 'ship', 'soccer-ball-field', 'basketball-court', 'airport', 'container-crane',
               'ground-track-field', 'small-vehicle', 'harbor', 'baseball-diamond', 'tennis-court',
               'roundabout', 'storage-tank', 'helipad']
 
 
-
-
 def format_label(txt_list):
     format_data = []
     for i in txt_list[2:]:
         format_data.append(
-        [int(xy) for xy in i.split(' ')[:8]] + [class_list.index(i.split(' ')[8])]
+            [int(float(xy)) for xy in i.split(' ')[:8]] + [class_list.index(i.split(' ')[8])]
         # {'x0': int(i.split(' ')[0]),
         # 'x1': int(i.split(' ')[2]),
         # 'x2': int(i.split(' ')[4]),
@@ -141,17 +141,18 @@ def format_label(txt_list):
         # 'class': class_list.index(i.split(' ')[8]) if i.split(' ')[8] in class_list else 0, 
         # 'difficulty': int(i.split(' ')[9])}
         )
-        if i.split(' ')[8] not in class_list :
-            print ('warning found a new label :', i.split(' ')[8])
+        if i.split(' ')[8] not in class_list:
+            print('warning found a new label :', i.split(' ')[8])
             exit()
     return np.array(format_data)
+
 
 def clip_image(file_idx, image, boxes_all, width, height):
     # print ('image shape', image.shape)
     if len(boxes_all) > 0:
         shape = image.shape
-        for start_h in range(0, shape[0], 256):
-            for start_w in range(0, shape[1], 256):
+        for start_h in range(0, shape[0], 700):
+            for start_w in range(0, shape[1], 700):
                 boxes = copy.deepcopy(boxes_all)
                 box = np.zeros_like(boxes_all)
                 start_h_new = start_h
@@ -185,59 +186,68 @@ def clip_image(file_idx, image, boxes_all, width, height):
                 # print ('boxes', boxes)
                 # print ('boxes_all', boxes_all)
                 # print ('top_left_col', top_left_col, 'top_left_row', top_left_row)
-
-                cond1 = np.intersect1d(np.where(center_y[:] >=0 )[0], np.where(center_x[:] >=0 )[0])
+                # np.intersectld(list1, list[2]), 查找同一位置相同的点
+                cond1 = np.intersect1d(np.where(center_y[:] >= 0)[0], np.where(center_x[:] >= 0)[0])
                 cond2 = np.intersect1d(np.where(center_y[:] <= (bottom_right_row - top_left_row))[0],
-                                        np.where(center_x[:] <= (bottom_right_col - top_left_col))[0])
+                                       np.where(center_x[:] <= (bottom_right_col - top_left_col))[0])
                 idx = np.intersect1d(cond1, cond2)
                 # idx = np.where(center_y[:]>=0 and center_x[:]>=0 and center_y[:] <= (bottom_right_row - top_left_row) and center_x[:] <= (bottom_right_col - top_left_col))[0]
                 # save_path, im_width, im_height, objects_axis, label_name
+
+                # 存在满足条件的目标框
                 if len(idx) > 0:
                     xml = os.path.join(save_dir, 'labeltxt', "%s_%04d_%04d.xml" % (file_idx, top_left_row, top_left_col))
                     save_to_xml(xml, subImage.shape[0], subImage.shape[1], box[idx, :], class_list)
                     # print ('save xml : ', xml)
-                    if subImage.shape[0] > 5 and subImage.shape[1] >5:
+                    if subImage.shape[0] > 5 and subImage.shape[1] > 5:
                         img = os.path.join(save_dir, 'images', "%s_%04d_%04d.png" % (file_idx, top_left_row, top_left_col))
                         cv2.imwrite(img, subImage)
-        
-    
-    
+        print(file_idx, 'have saved!')
 
-print ('class_list', len(class_list))
-raw_data = '/dataset/DOTA/train/'
+
+print('class_list', len(class_list))
+raw_data = 'D:/competition/space-tech-remote-sensing-ob-detection-dataset/train/'
 raw_images_dir = os.path.join(raw_data, 'images')
 raw_label_dir = os.path.join(raw_data, 'labelTxt')
 
-save_dir = '/dataset/DOTA_clip/train/'
+save_dir = 'D:/competition/crop_dataset/train/'
+
+# 创建保存位置
+if not os.path.exists(os.path.join(save_dir, 'labeltxt')):
+    os.makedirs(os.path.join(save_dir, 'labeltxt'))
+if not os.path.exists(os.path.join(save_dir, 'images')):
+    os.makedirs(os.path.join(save_dir, 'images'))
 
 images = [i for i in os.listdir(raw_images_dir) if 'png' in i]
 labels = [i for i in os.listdir(raw_label_dir) if 'txt' in i]
 
-print ('find image', len(images))
-print ('find label', len(labels))
+print('find image: ', len(images))
+print('find label: ', len(labels))
 
 min_length = 1e10
 max_length = 1
 
-for idx, img in enumerate(images):
-# img = 'P1524.png'
-    print (idx, 'read image', img)
-    img_data = misc.imread(os.path.join(raw_images_dir, img))
-    # img_data = cv2.imread(os.path.join(raw_images_dir, img))
-    # if len(img_data.shape) == 2:
-        # img_data = img_data[:, :, np.newaxis]
-        # print ('find gray image')
 
-    txt_data = open(os.path.join(raw_label_dir, img.replace('png', 'txt')), 'r').readlines()
-    # print (idx, len(format_label(txt_data)), img_data.shape)
-    # if max(img_data.shape[:2]) > max_length:
-        # max_length = max(img_data.shape[:2])
-    # if min(img_data.shape[:2]) < min_length:
-        # min_length = min(img_data.shape[:2])
-    # if idx % 50 ==0:
-        # print (idx, len(format_label(txt_data)), img_data.shape)
-        # print (idx, 'min_length', min_length, 'max_length', max_length)
+saved_path_list = os.listdir('D:/competition/crop_dataset/train/labeltxt/')
+save_list = [str(m).split('_')[0] for m in saved_path_list]
+for idx, img in enumerate(images):
+    print(idx, 'read image: ', img)
+    if img in ['P3536.png', 'P11054.png', 'P5203.png', 'P6637.png', 'P9847.png']:
+        continue
+    if img.split('.')[0] in save_list:
+        continue
+    img_data = misc.imread(os.path.join(raw_images_dir, img))
+    txt_data = []
+    f = open(os.path.join(raw_label_dir, img.replace('png', 'txt')), 'r', encoding='utf-8')
+    try:
+        for line in f.readlines():
+            if line == '\n':
+                continue
+            txt_data.append(str(line).strip('\n'))
+    finally:
+        f.close()
     box = format_label(txt_data)
+    print(box.shape)
     clip_image(img.strip('.png'), img_data, box, 800, 800)
     
     
